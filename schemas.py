@@ -2,47 +2,35 @@
 Database Schemas
 
 Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
 Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Model name is converted to lowercase for the collection name.
 """
+from typing import List, Literal, Optional
+from pydantic import BaseModel, Field, field_validator
 
-from pydantic import BaseModel, Field
-from typing import Optional
 
-# Example schemas (replace with your own):
-
-class User(BaseModel):
+class Game(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    Tic Tac Toe game sessions
+    Collection name: "game"
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    game_id: str = Field(..., min_length=4, max_length=4, description="4-digit game code")
+    board: List[Optional[Literal['X', 'O']]] = Field(
+        default_factory=lambda: [None] * 9,
+        description="Board state as 9 positions"
+    )
+    x_starts: bool = Field(True, description="Who starts the current round")
+    x_is_next: bool = Field(True, description="Whose turn it is now")
+    x_player: Optional[str] = Field(None, description="Identifier for player X")
+    o_player: Optional[str] = Field(None, description="Identifier for player O")
+    winner: Optional[Literal['X', 'O']] = Field(None, description="Winner of the current round if any")
+    draw: bool = Field(False, description="Whether the current round is a draw")
+    score_x: int = Field(0, ge=0)
+    score_o: int = Field(0, ge=0)
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
-
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+    @field_validator('board')
+    @classmethod
+    def board_length(cls, v: List[Optional[str]]):
+        if len(v) != 9:
+            raise ValueError('Board must have 9 positions')
+        return v
